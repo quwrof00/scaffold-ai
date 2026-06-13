@@ -72,8 +72,8 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-8 text-[14px] font-medium text-zinc-600/90 w-1/3">
             <Link href="#about" className="hover:text-zinc-950 transition-colors">About</Link>
             <Link href="#features" className="hover:text-zinc-950 transition-colors">Features</Link>
-            <Link href="#teachers" className="hover:text-zinc-950 transition-colors">For Teachers</Link>
-            <Link href="#parents" className="hover:text-zinc-950 transition-colors">For Parents</Link>
+            <Link href="/teacher" className="hover:text-zinc-950 transition-colors">For Teachers</Link>
+            <Link href="/parent" className="hover:text-zinc-950 transition-colors">For Parents</Link>
           </nav>
 
           {/* Logo center */}
