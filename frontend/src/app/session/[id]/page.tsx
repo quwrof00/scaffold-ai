@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Sparkles, 
-  Target, 
-  TrendingUp, 
+import {
+  Sparkles,
+  Target,
+  TrendingUp,
   ArrowLeft,
   ArrowRight,
   BrainCircuit,
@@ -49,7 +49,7 @@ export default function SessionPage() {
   const [steps, setSteps] = useState<InteractionStep[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom of chat
@@ -85,7 +85,7 @@ export default function SessionPage() {
     }]);
 
     try {
-      const res = await fetch(`${API_BASE}/chat`, {
+      const res = await fetch("http://127.0.0.1:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -96,7 +96,7 @@ export default function SessionPage() {
       });
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
-      
+
       // The API returns the FIRST guided question and any diagnosis.
       // We push this as the new ACTIVE step (studentAnswer = null)
       setSteps(prev => [...prev, {
@@ -121,12 +121,12 @@ export default function SessionPage() {
     setIsLoading(true);
 
     // 1. Lock in the answer for the current active step
-    setSteps(prev => prev.map(s => 
+    setSteps(prev => prev.map(s =>
       s.id === stepId ? { ...s, studentAnswer: userMsg } : s
     ));
 
     try {
-      const res = await fetch(`${API_BASE}/chat`, {
+      const res = await fetch("http://127.0.0.1:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,7 +137,7 @@ export default function SessionPage() {
       });
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
-      
+
       // 2. Create the next active step
       setSteps(prev => [...prev, {
         id: `step-${Date.now()}`,
@@ -163,10 +163,10 @@ export default function SessionPage() {
   return (
     <AppShell headerTitle="Socratic Workspace" headerSubtitle="Interactive Flow" fullBleed={true}>
       <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row relative z-10 max-w-6xl mx-auto w-full overflow-hidden">
-        
+
         {/* MAIN WORKSHEET COLUMN */}
         <div className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col space-y-6 scrollbar-hide pb-32">
-          
+
           <div className="flex items-center justify-between mb-2 shrink-0">
             <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-950 text-xs font-medium group transition-colors">
               <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
@@ -201,7 +201,7 @@ export default function SessionPage() {
                 const isActive = step.studentAnswer === null;
 
                 return (
-                  <motion.div 
+                  <motion.div
                     key={step.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -215,14 +215,13 @@ export default function SessionPage() {
 
                     <div className="flex gap-4">
                       {/* Step Number Badge */}
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-colors z-10 ${
-                        isActive ? 'bg-zinc-900 text-white shadow-md' : 'bg-zinc-100 text-zinc-400'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-colors z-10 ${isActive ? 'bg-zinc-900 text-white shadow-md' : 'bg-zinc-100 text-zinc-400'
+                        }`}>
                         {index}
                       </div>
 
                       <div className="flex-1 space-y-3 pt-1">
-                        
+
                         {/* 1. Diagnosis Callout (if any) */}
                         {step.diagnosis && step.diagnosis.possibleMisconceptions && step.diagnosis.possibleMisconceptions.length > 0 && (
                           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border border-amber-100/50">
@@ -242,16 +241,16 @@ export default function SessionPage() {
                         {isActive ? (
                           <form onSubmit={(e) => handleStudentSubmit(e, step.id)} className="pt-3">
                             <div className="flex gap-2">
-                              <input 
+                              <input
                                 autoFocus
-                                type="text" 
+                                type="text"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="Your reasoning..." 
+                                placeholder="Your reasoning..."
                                 className="flex-1 bg-white border border-zinc-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 transition-all shadow-sm"
                                 disabled={isLoading}
                               />
-                              <button 
+                              <button
                                 type="submit"
                                 disabled={isLoading || !inputValue.trim()}
                                 className="bg-zinc-900 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
@@ -273,7 +272,7 @@ export default function SessionPage() {
                   </motion.div>
                 );
               })}
-              
+
               {/* Global Loading state for the next step */}
               {isLoading && steps.length > 1 && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-5 mt-8">
@@ -294,7 +293,7 @@ export default function SessionPage() {
         {/* RIGHT SIDEBAR (Concept States Tracking) */}
         <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-zinc-100 bg-white p-6 shrink-0 relative z-20 overflow-y-auto">
           <div className="space-y-6">
-            
+
             <div className="space-y-1">
               <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Live Tracking</span>
               <h3 className="text-sm font-bold text-zinc-800">Memory Model</h3>
