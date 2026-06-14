@@ -16,6 +16,7 @@ from app.services.rule_engine import analyze_student_prompt
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
+import psycopg
 
 from app.graph.workflow import app_workflow_builder
 from app.models.profile import StudentProfileContext
@@ -24,6 +25,12 @@ from app.models.session import CurrentSessionContext
 # Global variables for the compiled graph and postgres pool
 app_workflow = None
 postgres_pool = None
+
+async def check_postgres_connection(conn):
+    try:
+        await conn.execute("SELECT 1")
+    except psycopg.OperationalError as e:
+        raise psycopg.OperationalError("Connection check failed") from e
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,6 +45,7 @@ async def lifespan(app: FastAPI):
             max_idle=120,
             max_lifetime=300,
             open=False,
+            check=check_postgres_connection,
             kwargs={
                 "autocommit": True,
                 "keepalives": 1,
