@@ -32,7 +32,7 @@ export function AppShell({
       <MobileDrawer />
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto md:overflow-hidden">
         <Header
           title={headerTitle}
           subtitle={headerSubtitle}
@@ -41,7 +41,7 @@ export function AppShell({
 
         <main
           className={cn(
-            "flex-1 overflow-y-auto",
+            "flex-1 md:overflow-y-auto shrink-0 md:shrink",
             !fullBleed && "p-4 md:p-6",
             "pb-safe md:pb-6", // extra bottom padding on mobile for nav
             className

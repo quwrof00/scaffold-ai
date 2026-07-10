@@ -2,11 +2,15 @@ from langgraph.graph import StateGraph, START, END
 from app.graph.state import GraphState
 from app.graph.nodes.rule_engine import rule_engine_node
 from app.graph.nodes.llm_layer import diagnosis_node, socratic_node, hint_node, concept_graph_generator_node, concept_evaluator_node
+from app.graph.nodes.objective_evaluator import objective_evaluator_node
 
 def route_after_rules(state: GraphState):
     """Router based on the next_action determined by the rule engine."""
     next_action = state.get("next_action")
     session = state.get("session")
+    
+    if next_action == "evaluate_objective":
+        return "objective_evaluator_node"
     
     # Concept Flow Routing
     if session and getattr(session, 'intent', None) == "CONCEPT_UNDERSTANDING":
@@ -31,6 +35,7 @@ def build_workflow():
     workflow.add_node("hint_node", hint_node)
     workflow.add_node("concept_graph_generator_node", concept_graph_generator_node)
     workflow.add_node("concept_evaluator_node", concept_evaluator_node)
+    workflow.add_node("objective_evaluator_node", objective_evaluator_node)
     
     # Add edges
     workflow.add_edge(START, "rule_engine")
@@ -44,7 +49,8 @@ def build_workflow():
             "diagnosis_node": "diagnosis_node",
             "socratic_node": "socratic_node",
             "concept_graph_generator_node": "concept_graph_generator_node",
-            "concept_evaluator_node": "concept_evaluator_node"
+            "concept_evaluator_node": "concept_evaluator_node",
+            "objective_evaluator_node": "objective_evaluator_node"
         }
     )
     
@@ -58,6 +64,9 @@ def build_workflow():
     
     # Hint flow: Hint -> End
     workflow.add_edge("hint_node", END)
+    
+    # Objective evaluation -> End
+    workflow.add_edge("objective_evaluator_node", END)
     
     return workflow
 

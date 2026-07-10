@@ -30,6 +30,30 @@ export default function LoginPage() {
     }
   }
 
+  async function handleDemoLogin(e: React.MouseEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    let demoEmail = localStorage.getItem("test_demo_email");
+    if (!demoEmail) {
+      demoEmail = `test_${Math.random().toString(36).substring(2, 9)}@scaffold.ai`;
+      localStorage.setItem("test_demo_email", demoEmail);
+    }
+
+    const result = await signIn("credentials", {
+      email: demoEmail,
+      password: "demo",
+      redirect: false,
+    });
+    setLoading(false);
+    if (result?.error) {
+      setError("Failed to login with demo account.");
+    } else {
+      router.push("/dashboard");
+    }
+  }
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4"
@@ -153,21 +177,37 @@ export default function LoginPage() {
           </div>
 
           {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60"
-            style={{
-              background: "linear-gradient(135deg, #7b5ccc 0%, #a06abf 100%)",
-            }}
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogIn className="w-4 h-4" />
-            )}
-            {loading ? "Signing in…" : "Sign In"}
-          </button>
+          <div className="space-y-3 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60"
+              style={{
+                background: "linear-gradient(135deg, #7b5ccc 0%, #a06abf 100%)",
+              }}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LogIn className="w-4 h-4" />
+              )}
+              {loading ? "Signing in…" : "Sign In"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60"
+              style={{
+                background: "rgba(123, 92, 204, 0.1)",
+                color: "#7b5ccc",
+                border: "1px solid rgba(123, 92, 204, 0.2)",
+              }}
+            >
+              Test Demo Login
+            </button>
+          </div>
 
           <p className="text-center text-xs pt-1" style={{ color: "#8a7fac" }}>
             Don&apos;t have an account?{" "}

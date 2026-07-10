@@ -21,8 +21,11 @@ def rule_engine_node(state: GraphState) -> GraphState:
     if failed_attempts >= max_attempts:
         state["next_action"] = "hint"
     else:
-        # Default route to initial diagnosis or socratic if already diagnosed
-        if state.get("diagnosis"):
+        # Check if all concepts are KNOWN
+        concept_states = state.get("concept_states")
+        if concept_states and len(concept_states) > 0 and all(status == "KNOWN" for status in concept_states.values()):
+            state["next_action"] = "evaluate_objective"
+        elif state.get("diagnosis"):
             state["next_action"] = "socratic"
         else:
             state["next_action"] = "diagnose"

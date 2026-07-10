@@ -40,6 +40,7 @@ const DEMO_SUBJECT_PROGRESS = [
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [expandedStuckPoint, setExpandedStuckPoint] = useState<string | null>("stuck-1");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Generate 7x15 heatmap cells with mock activity levels
   const heatmapData = Array.from({ length: 105 }, (_, i) => {
@@ -81,7 +82,12 @@ export default function LandingPage() {
           <div className="flex justify-end w-1/3 items-center">
             {/* Small mobile nav trigger */}
             <div className="md:hidden mr-4">
-              <button className="text-zinc-600 hover:text-zinc-900 text-sm font-medium">Menu</button>
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-zinc-600 hover:text-zinc-900 text-sm font-medium flex items-center justify-center p-2"
+              >
+                {isMobileMenuOpen ? "Close" : "Menu"}
+              </button>
             </div>
             
             <Link href="/register" className="bg-white hover:bg-zinc-50 border border-zinc-200/80 text-zinc-900 px-5 py-2 rounded-full text-sm font-semibold shadow-[0_2px_6px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:scale-[0.98] transition-all">
@@ -90,6 +96,23 @@ export default function LandingPage() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Dropdown */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="md:hidden absolute top-20 left-4 right-4 bg-white rounded-2xl shadow-xl border border-zinc-200/50 p-4 z-50 flex flex-col gap-4"
+          >
+            <Link href="#about" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-700 font-medium p-2 hover:bg-zinc-50 rounded-lg">About</Link>
+            <Link href="#features" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-700 font-medium p-2 hover:bg-zinc-50 rounded-lg">Features</Link>
+            <Link href="/teacher" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-700 font-medium p-2 hover:bg-zinc-50 rounded-lg">For Teachers</Link>
+            <Link href="/parent" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-700 font-medium p-2 hover:bg-zinc-50 rounded-lg">For Parents</Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* HERO SECTION */}
       <section className="relative z-10 pt-16 md:pt-24 pb-20 px-6 max-w-5xl mx-auto text-center flex flex-col items-center">
@@ -170,7 +193,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, type: "spring", stiffness: 50 }}
-            className="w-full max-w-[960px] aspect-[16/10] bg-zinc-950 rounded-2xl md:rounded-[24px] border-4 border-zinc-800 shadow-[0_32px_64px_rgba(0,0,0,0.18),0_16px_32px_rgba(120,80,200,0.06)] overflow-hidden relative"
+            className="hidden md:block w-full max-w-[960px] aspect-[16/10] bg-zinc-950 rounded-[24px] border-4 border-zinc-800 shadow-[0_32px_64px_rgba(0,0,0,0.18),0_16px_32px_rgba(120,80,200,0.06)] overflow-hidden relative"
           >
             
             {/* Laptop Notch */}
@@ -563,7 +586,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, x: 50, y: 50 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: 1.1, delay: 0.6, type: "spring", stiffness: 45 }}
-            className="absolute -bottom-12 right-0 md:right-8 w-60 aspect-[9/18.5] bg-zinc-950 rounded-[44px] border-4 border-zinc-800 shadow-[0_24px_50px_rgba(0,0,0,0.22),0_8px_24px_rgba(120,80,200,0.08)] ring-8 ring-zinc-900 overflow-hidden hidden sm:block z-40 hover:scale-[1.03] transition-transform"
+            className="relative mx-auto md:absolute md:-bottom-12 md:right-8 w-[280px] md:w-60 aspect-[9/18.5] bg-zinc-950 rounded-[44px] border-4 border-zinc-800 shadow-[0_24px_50px_rgba(0,0,0,0.22),0_8px_24px_rgba(120,80,200,0.08)] ring-8 ring-zinc-900 overflow-hidden z-40 hover:scale-[1.03] transition-transform"
           >
             {/* Dynamic Island Screen notch */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-zinc-950 rounded-full z-50 flex items-center justify-center">

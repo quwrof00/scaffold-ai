@@ -43,6 +43,10 @@ export function useStudentData(studentIdOverride?: string): StudentData {
   const sid = studentIdOverride || (session?.user as any)?.studentProfileId;
 
   useEffect(() => {
+    if (status === "unauthenticated") {
+      setLoading(false);
+      return;
+    }
     if (status !== "authenticated") return;
     if (!sid) {
       setLoading(false);

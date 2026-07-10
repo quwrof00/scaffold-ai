@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Any
@@ -115,6 +116,8 @@ class ChatResponse(BaseModel):
     diagnosis: Optional[Any] = None
     next_stage: Optional[str] = None
     concept_states: Optional[Any] = None
+    concept_graph: Optional[Any] = None
+    is_completion_check: Optional[bool] = False
 
 # ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -499,12 +502,12 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     db_session = session_result.scalars().first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
-        
+
     profile_result = await db.execute(select(StudentProfile).where(StudentProfile.id == req.student_id))
     db_profile = profile_result.scalars().first()
     if not db_profile:
         raise HTTPException(status_code=404, detail="Student Profile not found")
-        
+
     profile_ctx = StudentProfileContext(
         grade=db_profile.grade or "Unknown",
         weakTopics=[],
@@ -513,7 +516,7 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
         strictnessPreference="HINT_ONLY",
         recentSessions=[]
     )
-    
+
     session_ctx = CurrentSessionContext(
         problem=req.message,
         subject=db_session.subject or "General",
@@ -522,34 +525,37 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
         intent=db_session.intent.value if db_session.intent else "GENERAL",
         failed_attempts=0
     )
-    
+
     user_msg = HumanMessage(content=req.message)
-    
     config = {"configurable": {"thread_id": req.session_id}}
-    
+
     existing_state_snapshot = await app_workflow.aget_state(config)
-    
-    input_state = {
+    input_state: dict = {
         "messages": [user_msg],
         "input_type": "text",
     }
-    
     if not existing_state_snapshot or not existing_state_snapshot.values.get("session"):
         input_state["profile"] = profile_ctx
         input_state["session"] = session_ctx
-    
-    
+
+    # Run the workflow and get the final state
+    final_state = await app_workflow.ainvoke(input_state, config=config)
+
+    # Extract the last AIMessage
+    from langchain_core.messages import AIMessage as LCAIMessage
+    messages = final_state.get("messages", [])
+    ai_messages = [m for m in messages if isinstance(m, LCAIMessage)]
+    if ai_messages:
+        ai_response = ai_messages[-1].content
+    elif messages:
+        ai_response = messages[-1].content
+    else:
+        ai_response = "I'm not sure how to respond. Could you rephrase?"
+
+    print(f"[CHAT] ai_response = {repr(ai_response[:120])}")
+
+    # --- Persistence ---
     try:
-        final_state = await app_workflow.ainvoke(input_state, config=config)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Graph execution failed: {str(e)}")
-    ai_response = final_state["messages"][-1].content if final_state.get("messages") else "No response generated."
-    
-    # --- Persistence Logic: Update the "Living Model" ---
-    try:
-        # 1. Update Concept Mastery
         concept_states = final_state.get("concept_states")
         if concept_states and isinstance(concept_states, dict):
             for concept_name, status_str in concept_states.items():
@@ -558,7 +564,6 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
                     status_val = ConceptStatus(status_str)
                 except ValueError:
                     pass
-                    
                 mastery_result = await db.execute(
                     select(StudentConceptMastery).where(
                         StudentConceptMastery.studentId == req.student_id,
@@ -574,22 +579,19 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
                 else:
                     if status_val == ConceptStatus.KNOWN:
                         db_profile.xp = (db_profile.xp or 0) + 50
-                    new_mastery = StudentConceptMastery(
+                    db.add(StudentConceptMastery(
                         studentId=req.student_id,
                         subject=db_session.subject,
                         topic=db_session.topic,
                         concept=concept_name,
                         status=status_val,
                         attempts=1
-                    )
-                    db.add(new_mastery)
-        
-        # 2. Update Misconceptions (The Stuck Map)
+                    ))
+
         diagnosis = final_state.get("diagnosis")
         if diagnosis and isinstance(diagnosis, dict):
             possible_misconceptions = diagnosis.get("possibleMisconceptions", [])
             if possible_misconceptions:
-                # Save the primary detected misconception
                 misc_text = possible_misconceptions[0]
                 misc_result = await db.execute(
                     select(StudentMisconception).where(
@@ -601,22 +603,23 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
                 if misc_record:
                     misc_record.frequency += 1
                 else:
-                    new_misc = StudentMisconception(
+                    db.add(StudentMisconception(
                         studentId=req.student_id,
                         concept=misc_text,
                         frequency=1
-                    )
-                    db.add(new_misc)
-                    
+                    ))
+
         await db.commit()
     except Exception as persist_error:
-        print(f"Failed to persist student memory: {persist_error}")
+        print(f"[CHAT] Persistence failed (non-fatal): {persist_error}")
         await db.rollback()
-    # --------------------------------------------------
-    
-    return ChatResponse(
-        response=ai_response,
-        diagnosis=final_state.get("diagnosis"),
-        next_stage=final_state.get("current_stage"),
-        concept_states=final_state.get("concept_states")
-    )
+
+    return {
+        "response": ai_response,
+        "diagnosis": final_state.get("diagnostic_state") or final_state.get("diagnosis"),
+        "next_stage": final_state.get("current_stage"),
+        "concept_states": final_state.get("concept_states"),
+        "concept_graph": final_state.get("concept_graph"),
+        "is_completion_check": final_state.get("is_completion_check", False),
+    }
+

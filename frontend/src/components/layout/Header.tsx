@@ -29,7 +29,7 @@ export function Header({ title, subtitle, actions, className }: HeaderProps) {
         "h-[var(--header-height)] flex items-center px-4 md:px-6 gap-4",
         "bg-[hsl(var(--background)/0.85)] backdrop-blur-md",
         "border-b border-[hsl(var(--border-subtle))]",
-        "sticky top-0 z-30 flex-shrink-0",
+        "relative md:sticky top-0 z-30 flex-shrink-0",
         className
       )}
     >

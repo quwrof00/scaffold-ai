@@ -8,10 +8,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize Groq Model
+# Initialize Groq Model (streaming for token-by-token output)
 grok_model = ChatGroq(
     model="llama-3.1-8b-instant", 
-    api_key=os.getenv("GROQ_API_KEY", "dummy-key-for-now")
+    api_key=os.getenv("GROQ_API_KEY", "dummy-key-for-now"),
+    streaming=True
+)
+
+# Non-streaming model for structured output (streaming + structured output causes issues on Groq)
+grok_model_structured = ChatGroq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY", "dummy-key-for-now"),
+    streaming=False
 )
 
 def _build_system_prompt(state: GraphState, role: str) -> str:
@@ -78,7 +86,7 @@ def concept_graph_generator_node(state: GraphState) -> GraphState:
         
     sys_prompt = f"You are a master curriculum designer. The student is learning '{session.subject}' and the topic is '{session.topic}'. Break this topic down into a micro-graph of 4-7 fundamental concepts. For each concept, list any prerequisites from within this same list."
     
-    structured_model = grok_model.with_structured_output(ConceptGraphOutput)
+    structured_model = grok_model_structured.with_structured_output(ConceptGraphOutput)
     try:
         response = structured_model.invoke([SystemMessage(content=sys_prompt)])
         graph_dict = {}
@@ -108,7 +116,7 @@ def concept_evaluator_node(state: GraphState) -> GraphState:
     
     sys_prompt = f"You are a Knowledge Tracing Engine. Evaluate the student's latest response against the concept graph: {graph_str}. Current states: {current_states_str}. Which concepts did their response prove they know, partially know, don't know, or hold a misconception about? Output ONLY the state updates."
     
-    structured_model = grok_model.with_structured_output(ConceptEvaluatorOutput)
+    structured_model = grok_model_structured.with_structured_output(ConceptEvaluatorOutput)
     try:
         response = structured_model.invoke([SystemMessage(content=sys_prompt)] + messages)
         for update in response.updates:
@@ -141,7 +149,9 @@ def concept_evaluator_node(state: GraphState) -> GraphState:
     return state
 
 def diagnosis_node(state: GraphState) -> GraphState:
-    """Analyzes the latest message and context to diagnose a misconception using structured output."""
+    """Analyzes the latest message and context to diagnose a misconception.
+    Uses a plain LLM call since llama-3.1-8b-instant doesn't reliably support structured output.
+    """
     messages = state.get("messages", [])
     if not messages:
         return state
@@ -156,43 +166,26 @@ def diagnosis_node(state: GraphState) -> GraphState:
         else:
             session.failed_attempts = current_attempts + 1
         state["session"] = session
-
         
-    sys_prompt = _build_system_prompt(state, "Diagnostician. Determine required concept, likely misconceptions, and ask ONE diagnostic question.")
+    sys_prompt = _build_system_prompt(
+        state,
+        "Diagnostician. Your job is to understand where the student is stuck. "
+        "Ask ONE short, targeted diagnostic question to probe their understanding. "
+        "Do NOT give the answer or solve the problem. Keep it brief and conversational."
+    )
     
-    structured_model = grok_model.with_structured_output(DiagnosisOutput)
     try:
-        response = structured_model.invoke([SystemMessage(content=sys_prompt)] + messages)
-        
-        # Store the structured JSON diagnosis in state
-        
-        # Safely parse the possibleMisconceptions string into a list
-        misconceptions = []
-        if response.possibleMisconceptions:
-            # Sometimes the model still outputs a stringified JSON array, try to parse it
-            if response.possibleMisconceptions.strip().startswith("["):
-                try:
-                    import json
-                    misconceptions = json.loads(response.possibleMisconceptions)
-                except:
-                    misconceptions = [response.possibleMisconceptions]
-            else:
-                misconceptions = [response.possibleMisconceptions]
-                
-        state["diagnostic_state"] = {
-            "requiredConcept": response.requiredConcept,
-            "possibleMisconceptions": misconceptions,
-            "diagnosticQuestion": response.question
+        response = grok_model.invoke([SystemMessage(content=sys_prompt)] + messages)
+        return {
+            "messages": [response],
+            "current_stage": "diagnosis"
         }
-        
-        # Append the question as the AI's response so the user sees it
-        state["messages"].append(AIMessage(content=response.question))
     except Exception as e:
-        print(f"Warning: Diagnosis node failed to parse structured output: {e}")
-    
-    state["current_stage"] = "diagnosis"
-    
-    return state
+        print(f"Diagnosis node LLM call failed: {e}")
+        return {
+            "messages": [AIMessage(content="I'm having trouble connecting right now. Could you walk me through your thinking so far?")],
+            "current_stage": "diagnosis"
+        }
 
 def socratic_node(state: GraphState) -> GraphState:
     """Generates the next guiding question."""
@@ -220,10 +213,11 @@ def socratic_node(state: GraphState) -> GraphState:
     
     response = grok_model.invoke([SystemMessage(content=sys_prompt)] + messages)
     
-    state["messages"].append(response)
-    state["current_stage"] = "socratic_question"
-    
-    return state
+    return {
+        "messages": [response],
+        "current_stage": "socratic_question",
+        "session": session
+    }
 
 def hint_node(state: GraphState) -> GraphState:
     """Provides a more direct hint after too many failed attempts."""
@@ -233,7 +227,7 @@ def hint_node(state: GraphState) -> GraphState:
     
     response = grok_model.invoke([SystemMessage(content=sys_prompt)] + messages)
     
-    state["messages"].append(response)
-    state["current_stage"] = "hint"
-    
-    return state
+    return {
+        "messages": [response],
+        "current_stage": "hint"
+    }

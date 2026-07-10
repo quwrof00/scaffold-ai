@@ -35,3 +35,6 @@ class GraphState(TypedDict):
     next_action: Optional[str] # e.g., "diagnose", "guide", "reflect"
     understanding: int # Tracks progress
     
+    # End of Session variables
+    is_completion_check: Optional[bool]
+    completion_question: Optional[str]
