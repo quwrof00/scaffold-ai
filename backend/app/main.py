@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -496,8 +496,77 @@ async def create_session(req: CreateSessionRequest, db: AsyncSession = Depends(g
     return {"session_id": new_session.id}
 
 # ─── Chat ─────────────────────────────────────────────────────────────────────
+
+async def persist_chat_data(student_id: str, subject: str, topic: str, final_state: dict):
+    from app.db.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        try:
+            profile_result = await db.execute(select(StudentProfile).where(StudentProfile.id == student_id))
+            db_profile = profile_result.scalars().first()
+            if not db_profile:
+                return
+
+            concept_states = final_state.get("concept_states")
+            if concept_states and isinstance(concept_states, dict):
+                for concept_name, status_str in concept_states.items():
+                    status_val = ConceptStatus.UNKNOWN
+                    try:
+                        status_val = ConceptStatus(status_str)
+                    except ValueError:
+                        pass
+                    mastery_result = await db.execute(
+                        select(StudentConceptMastery).where(
+                            StudentConceptMastery.studentId == student_id,
+                            StudentConceptMastery.concept == concept_name
+                        )
+                    )
+                    mastery_record = mastery_result.scalars().first()
+                    if mastery_record:
+                        if mastery_record.status != ConceptStatus.KNOWN and status_val == ConceptStatus.KNOWN:
+                            db_profile.xp = (db_profile.xp or 0) + 50
+                        mastery_record.status = status_val
+                        mastery_record.attempts += 1
+                    else:
+                        if status_val == ConceptStatus.KNOWN:
+                            db_profile.xp = (db_profile.xp or 0) + 50
+                        db.add(StudentConceptMastery(
+                            studentId=student_id,
+                            subject=subject,
+                            topic=topic,
+                            concept=concept_name,
+                            status=status_val,
+                            attempts=1
+                        ))
+
+            diagnosis = final_state.get("diagnosis")
+            if diagnosis and isinstance(diagnosis, dict):
+                possible_misconceptions = diagnosis.get("possibleMisconceptions", [])
+                if possible_misconceptions:
+                    misc_text = possible_misconceptions[0]
+                    misc_result = await db.execute(
+                        select(StudentMisconception).where(
+                            StudentMisconception.studentId == student_id,
+                            StudentMisconception.concept == misc_text
+                        )
+                    )
+                    misc_record = misc_result.scalars().first()
+                    if misc_record:
+                        misc_record.frequency += 1
+                    else:
+                        db.add(StudentMisconception(
+                            studentId=student_id,
+                            concept=misc_text,
+                            frequency=1
+                        ))
+
+            await db.commit()
+        except Exception as persist_error:
+            print(f"[CHAT] Persistence failed (non-fatal): {persist_error}")
+            await db.rollback()
+
+
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     session_result = await db.execute(select(DBSession).where(DBSession.id == req.session_id))
     db_session = session_result.scalars().first()
     if not db_session:
@@ -555,64 +624,13 @@ async def chat_endpoint(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     print(f"[CHAT] ai_response = {repr(ai_response[:120])}")
 
     # --- Persistence ---
-    try:
-        concept_states = final_state.get("concept_states")
-        if concept_states and isinstance(concept_states, dict):
-            for concept_name, status_str in concept_states.items():
-                status_val = ConceptStatus.UNKNOWN
-                try:
-                    status_val = ConceptStatus(status_str)
-                except ValueError:
-                    pass
-                mastery_result = await db.execute(
-                    select(StudentConceptMastery).where(
-                        StudentConceptMastery.studentId == req.student_id,
-                        StudentConceptMastery.concept == concept_name
-                    )
-                )
-                mastery_record = mastery_result.scalars().first()
-                if mastery_record:
-                    if mastery_record.status != ConceptStatus.KNOWN and status_val == ConceptStatus.KNOWN:
-                        db_profile.xp = (db_profile.xp or 0) + 50
-                    mastery_record.status = status_val
-                    mastery_record.attempts += 1
-                else:
-                    if status_val == ConceptStatus.KNOWN:
-                        db_profile.xp = (db_profile.xp or 0) + 50
-                    db.add(StudentConceptMastery(
-                        studentId=req.student_id,
-                        subject=db_session.subject,
-                        topic=db_session.topic,
-                        concept=concept_name,
-                        status=status_val,
-                        attempts=1
-                    ))
-
-        diagnosis = final_state.get("diagnosis")
-        if diagnosis and isinstance(diagnosis, dict):
-            possible_misconceptions = diagnosis.get("possibleMisconceptions", [])
-            if possible_misconceptions:
-                misc_text = possible_misconceptions[0]
-                misc_result = await db.execute(
-                    select(StudentMisconception).where(
-                        StudentMisconception.studentId == req.student_id,
-                        StudentMisconception.concept == misc_text
-                    )
-                )
-                misc_record = misc_result.scalars().first()
-                if misc_record:
-                    misc_record.frequency += 1
-                else:
-                    db.add(StudentMisconception(
-                        studentId=req.student_id,
-                        concept=misc_text,
-                        frequency=1
-                    ))
-
-        await db.commit()
-    except Exception as persist_error:
-        print(f"[CHAT] Persistence failed (non-fatal): {persist_error}")
-        await db.rollback()
+    background_tasks.add_task(
+        persist_chat_data,
+        req.student_id,
+        db_session.subject,
+        db_session.topic,
+        final_state
+    )
 
     return {
         "response": ai_response,

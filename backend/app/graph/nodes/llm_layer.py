@@ -26,7 +26,7 @@ def _build_system_prompt(state: GraphState, role: str) -> str:
     profile = state.get("profile")
     session = state.get("session")
     
-    prompt = f"You are a helpful, expert tutor.\n"
+    prompt = f"You are an experienced, approachable professor mentoring a student during office hours. Speak naturally and conversationally. Get straight to the point without using robotic AI-isms like 'Certainly!', 'I'd be happy to help', or 'Let's dive in'. Your tone should be wise, encouraging, and highly human.\n"
     prompt += f"Role: {role}\n"
     prompt += f"CRITICAL RULE: The 'Student Profile' and 'Concept States' provided below are derived from backend analytics of the student's past sessions. Do NOT say 'you mentioned earlier' or 'you said'. If you reference this knowledge, frame it as your observation from their past learning history, like 'I can tell from our past sessions that you're familiar with...' or 'I've noticed you've been working on...'.\n\n"
     
