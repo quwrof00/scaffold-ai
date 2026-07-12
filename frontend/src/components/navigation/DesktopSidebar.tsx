@@ -33,18 +33,20 @@ function SidebarNavItem({ item, isCollapsed }: { item: NavItem; isCollapsed: boo
   const content = (
     <Link
       href={item.href}
+      title={isCollapsed ? item.label : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-all duration-150 group",
         isActive
           ? "bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]"
-          : "text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--foreground))]"
+          : "text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--foreground))]",
+        isCollapsed && "justify-center px-0"
       )}
     >
       <span className={cn("relative z-10", isActive && "text-[hsl(var(--primary))]")}>
         <NavIcon name={item.icon} />
       </span>
-      <span className="relative z-10 truncate">{item.label}</span>
-      {item.badge && (
+      {!isCollapsed && <span className="relative z-10 truncate">{item.label}</span>}
+      {item.badge && !isCollapsed && (
         <span className="ml-auto relative z-10 text-xs bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] px-1.5 py-0.5 rounded-full font-medium">
           {item.badge}
         </span>
@@ -70,15 +72,31 @@ export function DesktopSidebar() {
   }, [session]);
 
   return (
-    <aside className="hidden md:flex flex-col w-[240px] h-screen bg-[hsl(var(--surface))] border-r border-[hsl(var(--border))] relative z-20 flex-shrink-0">
+    <aside className={cn("hidden md:flex flex-col h-screen bg-[hsl(var(--surface))] border-r border-[hsl(var(--border))] relative z-20 flex-shrink-0 transition-all duration-300", isCollapsed ? "w-[72px]" : "w-[240px]")}>
       {/* Logo */}
-      <div className="flex items-center h-[var(--header-height)] px-4 flex-shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
-          <span className="font-bold text-[15px] tracking-tight text-[hsl(var(--foreground))] overflow-hidden whitespace-nowrap">
+      <div className={cn("flex items-center h-[var(--header-height)] flex-shrink-0", isCollapsed ? "justify-center px-2" : "justify-between px-4")}>
+        <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0" title={isCollapsed ? "ScaffoldAI" : undefined}>
+          <div className="w-8 h-8 bg-[hsl(var(--primary))] rounded-md flex items-center justify-center shrink-0">
+             <span className="text-white font-bold text-sm">S</span>
+          </div>
+          {!isCollapsed && <span className="font-bold text-[15px] tracking-tight text-[hsl(var(--foreground))] overflow-hidden whitespace-nowrap">
             ScaffoldAI
-          </span>
+          </span>}
         </Link>
+        {!isCollapsed && (
+          <button onClick={toggleCollapse} className="p-1 rounded-md hover:bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+        )}
       </div>
+      
+      {isCollapsed && (
+        <div className="flex justify-center mb-2">
+          <button onClick={toggleCollapse} className="p-1.5 rounded-md hover:bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] transition-colors border border-[hsl(var(--border))]">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto overflow-x-hidden">
@@ -101,26 +119,31 @@ export function DesktopSidebar() {
 
       {/* User card */}
       <div className="px-3 py-3 border-t border-[hsl(var(--border))] flex-shrink-0">
-        <div className="rounded-[var(--radius-md)] bg-[hsl(var(--surface-2))] p-3 space-y-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className={cn("rounded-[var(--radius-md)] bg-[hsl(var(--surface-2))] p-3 space-y-2.5", isCollapsed && "flex flex-col items-center p-2")}>
+          <div className={cn("flex items-center gap-2.5 min-w-0", isCollapsed && "justify-center")}>
             <Avatar name={userName} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate leading-tight">{userName}</p>
-              <p className="text-[11px] text-[hsl(var(--muted-foreground))] truncate">{session?.user?.email || ""}</p>
-            </div>
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate leading-tight">{userName}</p>
+                <p className="text-[11px] text-[hsl(var(--muted-foreground))] truncate">{session?.user?.email || ""}</p>
+              </div>
+            )}
           </div>
-          <div className="space-y-1">
+          {!isCollapsed && (
+            <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-[hsl(var(--muted-foreground))]">ScaffoldAI</span>
-                </div>
-          </div>
+              </div>
+            </div>
+          )}
           <div className="flex justify-center mt-2">
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="p-2 w-full flex items-center justify-center gap-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--destructive)/0.1)] hover:text-[hsl(var(--destructive))] rounded-[var(--radius-sm)] transition-colors text-xs font-semibold"
+              title={isCollapsed ? "Log out" : undefined}
+              className={cn("p-2 w-full flex items-center justify-center gap-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--destructive)/0.1)] hover:text-[hsl(var(--destructive))] rounded-[var(--radius-sm)] transition-colors text-xs font-semibold", isCollapsed && "px-0")}
             >
               <LogOut className="h-4 w-4" />
-              <span>Log out</span>
+              {!isCollapsed && <span>Log out</span>}
             </button>
           </div>
         </div>

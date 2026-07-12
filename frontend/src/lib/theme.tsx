@@ -27,7 +27,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     function resolve(t: Theme): "light" | "dark" {
-      return "light";
+      if (t === "system") {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      return t;
     }
 
     function apply(t: Theme) {

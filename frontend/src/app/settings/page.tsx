@@ -8,6 +8,7 @@ import { useStudentData } from "@/hooks/useStudentData";
 import { apiUpdateStudentProfile } from "@/lib/api";
 import React, { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 const learningStyles = [
   "Visual Examples",
@@ -20,6 +21,7 @@ const tutoringPace = ["Relaxed", "Balanced", "Fast"];
 
 export default function Page() {
   const { profile, loading, mutateProfile } = useStudentData();
+  const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,6 +37,12 @@ export default function Page() {
         email: formData.get("email") as string,
         parentEmails: formData.get("parentEmails") as string,
       };
+      
+      const themePref = formData.get("theme") as string;
+      if (themePref) {
+        setTheme(themePref.toLowerCase() as "light" | "dark" | "system");
+      }
+
       await apiUpdateStudentProfile(profile.id, updates);
       mutateProfile(updates);
     } catch (err) {
@@ -59,10 +67,27 @@ export default function Page() {
       <div className="mx-auto w-full max-w-2xl px-4 py-8 md:py-12">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
+          {/* Appearance Preferences */}
+          <SectionCard title="Appearance">
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-zinc-700 mb-3">
+                Theme
+              </legend>
+              <SegmentedRadio
+                name="theme"
+                options={["Light", "Dark", "System"]}
+                defaultValue={theme.charAt(0).toUpperCase() + theme.slice(1)}
+              />
+              <p className="text-xs text-zinc-400 leading-relaxed pt-1">
+                Choose the visual style of your workspace.
+              </p>
+            </fieldset>
+          </SectionCard>
+
           {/* Learning Preferences */}
           <SectionCard title="Learning Preferences">
             <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-gray-700 mb-3">
+              <legend className="text-sm font-semibold text-zinc-700 mb-3">
                 Preferred Learning Style
               </legend>
               <div className="grid gap-2.5 sm:grid-cols-2">
@@ -72,9 +97,9 @@ export default function Page() {
               </div>
             </fieldset>
 
-            <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="mt-8 pt-6 border-t border-zinc-100">
               <fieldset className="space-y-3">
-                <legend className="text-sm font-semibold text-gray-700 mb-3">
+                <legend className="text-sm font-semibold text-zinc-700 mb-3">
                   Tutoring Pace
                 </legend>
                 <SegmentedRadio
@@ -84,7 +109,7 @@ export default function Page() {
                     { "SLOW": "Relaxed", "MEDIUM": "Balanced", "FAST": "Fast" }[profile?.learningPace || "MEDIUM"] || "Balanced"
                   }
                 />
-                <p className="text-xs text-gray-400 leading-relaxed pt-1">
+                <p className="text-xs text-zinc-400 leading-relaxed pt-1">
                   Controls how quickly the tutor introduces new concepts and moves through topics.
                 </p>
               </fieldset>
@@ -97,9 +122,9 @@ export default function Page() {
               <TextField label="Name" name="name" id="name" defaultValue={profile?.name || ""} />
               <TextField label="Email" name="email" id="email" defaultValue={profile?.email || ""} type="email" />
 
-              <div className="pt-5 border-t border-gray-100">
-                <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                  <span className="font-semibold text-gray-600">Parent Access —</span>{" "}
+              <div className="pt-5 border-t border-zinc-100">
+                <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                  <span className="font-semibold text-zinc-600">Parent Access —</span>{" "}
                   Grant parents read-only access to your dashboard by entering their registered email addresses below.
                 </p>
                 <TextField
@@ -111,7 +136,7 @@ export default function Page() {
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-5 border-t border-gray-100">
+              <div className="flex items-center justify-between pt-5 border-t border-zinc-100">
                 <button
                   type="button"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 border border-red-100 bg-red-50 hover:bg-red-100 transition-colors"
@@ -147,8 +172,8 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl bg-white border border-gray-100 shadow-sm", className)}>
-      <div className="px-6 pt-5 pb-4 border-b border-gray-100">
+    <div className={cn("rounded-2xl bg-white border border-zinc-100 shadow-sm", className)}>
+      <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-purple-500">
           {title}
         </p>
@@ -175,7 +200,7 @@ function TextField({
 }) {
   return (
     <label className="block space-y-2" htmlFor={id}>
-      <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+      <span className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">
         {label}
       </span>
       <input
@@ -184,7 +209,7 @@ function TextField({
         id={id}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-purple-400 focus:ring-4 focus:ring-purple-100 focus:bg-white"
+        className="h-11 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-all focus:border-purple-400 focus:ring-4 focus:ring-purple-100 focus:bg-white"
       />
     </label>
   );
@@ -200,7 +225,7 @@ function SegmentedRadio({
   defaultValue: string;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-gray-200 bg-gray-100 p-1">
+    <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-zinc-200 bg-zinc-100 p-1">
       {options.map((option) => (
         <label key={option} className="relative">
           <input
@@ -210,7 +235,7 @@ function SegmentedRadio({
             defaultChecked={option === defaultValue}
             className="peer sr-only"
           />
-          <span className="flex h-9 cursor-pointer items-center justify-center rounded-lg text-sm font-medium text-gray-500 transition-all peer-checked:bg-white peer-checked:text-purple-700 peer-checked:shadow-sm peer-checked:font-semibold">
+          <span className="flex h-9 cursor-pointer items-center justify-center rounded-lg text-sm font-medium text-zinc-500 transition-all peer-checked:bg-white peer-checked:text-purple-700 peer-checked:shadow-sm peer-checked:font-semibold">
             {option}
           </span>
         </label>
@@ -221,11 +246,11 @@ function SegmentedRadio({
 
 function CheckOption({ label, defaultChecked }: { label: string; defaultChecked?: boolean }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-700 font-medium transition-colors hover:bg-gray-100">
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-700 font-medium transition-colors hover:bg-zinc-100">
       <input
         type="checkbox"
         defaultChecked={defaultChecked}
-        className="h-4 w-4 rounded border-gray-300 accent-purple-600"
+        className="h-4 w-4 rounded border-zinc-300 accent-purple-600"
       />
       <span>{label}</span>
     </label>

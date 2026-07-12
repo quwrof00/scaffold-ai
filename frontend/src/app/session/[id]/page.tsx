@@ -28,6 +28,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { useStudentData } from "@/hooks/useStudentData";
 import { API_BASE } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface DiagnosisData {
   requiredConcept?: string;
@@ -60,6 +61,14 @@ export default function SessionPage() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMemoryModelOpen, setIsMemoryModelOpen] = useState(false);
+  const [showGraphUpdate, setShowGraphUpdate] = useState(false);
+  
+  const [localConcepts, setLocalConcepts] = useState<any[]>([]);
+  const [conceptUpdateMsg, setConceptUpdateMsg] = useState<{concept: string, status: string} | null>(null);
+
+  useEffect(() => {
+    setLocalConcepts(concepts);
+  }, [concepts]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +88,17 @@ export default function SessionPage() {
     initialized.current = false;
     lastSessionId.current = sessionId;
   }
+
+  const latestConceptGraphString = latestConceptGraph ? JSON.stringify(latestConceptGraph) : null;
+
+  useEffect(() => {
+    // Only show the update toast if there is a graph and it's not the very first load
+    if (latestConceptGraphString && steps.length > 1) {
+      setShowGraphUpdate(true);
+      const timer = setTimeout(() => setShowGraphUpdate(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [latestConceptGraphString]);
 
   // Handle Initial Prompt Auto-Start
   useEffect(() => {
@@ -102,6 +122,42 @@ export default function SessionPage() {
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       
+      // Update local concepts if any concept states came back
+      if (data.concept_states) {
+        setLocalConcepts(prev => {
+          let updatedAny = false;
+          const nextConcepts = [...prev];
+          let lastUpdate: {concept: string, status: string} | null = null;
+          
+          for (const [conceptName, status] of Object.entries(data.concept_states)) {
+            const existingIdx = nextConcepts.findIndex(c => c.concept === conceptName);
+            if (existingIdx >= 0) {
+              if (nextConcepts[existingIdx].status !== status) {
+                 nextConcepts[existingIdx] = { ...nextConcepts[existingIdx], status: status as string };
+                 updatedAny = true;
+                 lastUpdate = { concept: conceptName, status: status as string };
+              }
+            } else {
+               nextConcepts.push({
+                 id: `temp-${Date.now()}-${conceptName}`,
+                 concept: conceptName,
+                 subject: "Current Session",
+                 status: status as string
+               });
+               updatedAny = true;
+               lastUpdate = { concept: conceptName, status: status as string };
+            }
+          }
+          
+          if (updatedAny && lastUpdate) {
+            setConceptUpdateMsg(lastUpdate);
+            setTimeout(() => setConceptUpdateMsg(null), 4000);
+          }
+          
+          return updatedAny ? nextConcepts : prev;
+        });
+      }
+
       // Append the new AI step with a null studentAnswer to activate it for the user
       setSteps(prev => [...prev, {
         id: `step-${Date.now()}`,
@@ -163,6 +219,53 @@ export default function SessionPage() {
 
         {/* MAIN WORKSHEET COLUMN */}
         <div className="flex-1 relative bg-zinc-50/40 flex flex-col overflow-hidden">
+          {/* Toast Notification for Graph Update */}
+          <AnimatePresence>
+            {showGraphUpdate && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-full shadow-lg shadow-purple-500/20 flex items-center gap-2.5 text-sm font-bold tracking-wide"
+              >
+                <Network className="w-4 h-4 animate-pulse" />
+                <span>Knowledge Map Updated!</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Toast Notification for Concept Mastery */}
+          <AnimatePresence>
+            {conceptUpdateMsg && (
+              <motion.div
+                key={conceptUpdateMsg.concept} // animate independently
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-white border border-zinc-200 text-zinc-800 px-5 py-3 rounded-xl shadow-xl shadow-zinc-200/50 flex items-center gap-3 text-sm font-bold tracking-wide"
+              >
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full",
+                  conceptUpdateMsg.status === 'KNOWN' ? "bg-emerald-100 text-emerald-600" :
+                  conceptUpdateMsg.status === 'PARTIAL' ? "bg-blue-100 text-blue-600" :
+                  "bg-zinc-100 text-zinc-600"
+                )}>
+                  {conceptUpdateMsg.status === 'KNOWN' ? <CheckCircle2 className="w-5 h-5" /> :
+                   conceptUpdateMsg.status === 'PARTIAL' ? <TrendingUp className="w-5 h-5" /> :
+                   <Target className="w-5 h-5" />}
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
+                    {conceptUpdateMsg.status === 'KNOWN' ? 'Concept Mastered' : 
+                     conceptUpdateMsg.status === 'PARTIAL' ? 'Concept Progress' : 
+                     'Concept Updated'}
+                  </span>
+                  <span className="text-sm font-black text-zinc-800">{conceptUpdateMsg.concept}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Subtle Dot Pattern */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #d4d4d8 1px, transparent 0)', backgroundSize: '24px 24px' }} />
           
@@ -247,7 +350,7 @@ export default function SessionPage() {
                         {/* 2. Socratic Question */}
                         <div className={`transition-all ${isActive ? 'text-zinc-900' : 'text-zinc-700'}`}>
                           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-                            <div className="prose prose-zinc prose-sm sm:prose-base max-w-none prose-p:leading-relaxed prose-p:font-medium prose-pre:bg-zinc-900 prose-pre:text-zinc-50 prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+                            <div className="prose prose-zinc dark:prose-invert prose-sm sm:prose-base max-w-none prose-p:leading-relaxed prose-p:font-medium prose-pre:bg-zinc-900 prose-pre:text-zinc-50 prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
                               <ReactMarkdown 
                                 remarkPlugins={[remarkMath]}
                                 rehypePlugins={[rehypeKatex]}
@@ -368,44 +471,70 @@ export default function SessionPage() {
             {/* NEW: Knowledge Map in the Sidebar */}
             {latestConceptGraph && (
               <div className="space-y-3 pb-6 border-b border-zinc-100">
-                <div className="flex items-center gap-2 pl-1 mb-1">
-                  <Network className="w-3.5 h-3.5 text-purple-500" />
-                  <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">Knowledge Map</h4>
-                </div>
-                <div className="bg-gradient-to-br from-purple-50/50 to-white border border-purple-100/60 rounded-xl p-3 shadow-sm flex flex-col gap-2.5">
-                  {Object.entries(latestConceptGraph).map(([concept, data]: [string, any]) => (
-                    <div key={concept} className="bg-white border border-purple-100/40 rounded-lg p-2.5 shadow-sm flex flex-col gap-1 relative overflow-hidden group">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-400 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      <span className="text-[11.5px] font-bold text-zinc-800 leading-tight pl-1">{concept}</span>
-                      {data.prerequisites && data.prerequisites.length > 0 && (
-                        <div className="text-[9.5px] text-zinc-500 flex items-start gap-1.5 leading-tight mt-1 pt-1.5 border-t border-purple-50/50 pl-1">
-                          <span className="font-medium text-purple-600/70 mt-0.5 uppercase tracking-wide text-[8px]">Requires</span>
-                          <span className="flex-1 font-medium">{data.prerequisites.join("  →  ")}</span>
-                        </div>
-                      )}
+                <details className="group bg-white border border-purple-100/60 rounded-xl shadow-sm overflow-hidden" open>
+                  <summary className="text-xs font-bold text-zinc-800 uppercase tracking-wider p-3 cursor-pointer hover:bg-zinc-50 flex items-center justify-between outline-none">
+                    <div className="flex items-center gap-2">
+                      <Network className="w-3.5 h-3.5 text-purple-500" />
+                      <span>Knowledge Map</span>
                     </div>
-                  ))}
-                </div>
+                    <ChevronDown className="w-4 h-4 text-zinc-400 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="bg-gradient-to-br from-purple-50/50 to-white p-3 pt-0 border-t border-purple-50/50 flex flex-col gap-2.5">
+                    {Object.entries(latestConceptGraph).map(([concept, data]: [string, any]) => {
+                      const localStatus = localConcepts.find((c: any) => c.concept === concept)?.status || 'UNKNOWN';
+                      const isKnown = localStatus === 'KNOWN';
+                      const isPartial = localStatus === 'PARTIAL';
+                      const isMisconception = localStatus === 'MISCONCEPTION';
+                      
+                      const bgClass = isKnown ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 
+                                      isPartial ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60' : 
+                                      isMisconception ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60' :
+                                      'bg-white dark:bg-zinc-900/50 border-purple-100/40 dark:border-purple-500/20';
+                      const barClass = isKnown ? 'bg-emerald-400' : 
+                                       isPartial ? 'bg-blue-400' : 
+                                       isMisconception ? 'bg-red-400' :
+                                       'bg-purple-400';
+                                       
+                      return (
+                        <div key={concept} className={cn("rounded-lg p-2.5 shadow-sm flex flex-col gap-1 relative overflow-hidden group/item border transition-colors duration-500", bgClass)}>
+                          <div className={cn("absolute left-0 top-0 bottom-0 w-1 opacity-50 group-hover/item:opacity-100 transition-opacity", barClass)} />
+                          <div className="flex justify-between items-start pl-1">
+                            <span className="text-[11.5px] font-bold text-zinc-800 leading-tight pr-2">{concept}</span>
+                            {isKnown && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0 mt-0.5" />}
+                            {isPartial && <TrendingUp className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />}
+                            {isMisconception && <AlertTriangle className="w-3 h-3 text-red-500 shrink-0 mt-0.5" />}
+                          </div>
+                          {data.prerequisites && data.prerequisites.length > 0 && (
+                            <div className="text-[9.5px] text-zinc-500 flex items-start gap-1.5 leading-tight mt-1 pt-1.5 border-t border-black/5 pl-1">
+                              <span className="font-medium text-black/40 mt-0.5 uppercase tracking-wide text-[8px]">Requires</span>
+                              <span className="flex-1 font-medium">{data.prerequisites.join("  →  ")}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
               </div>
             )}
 
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider pl-1">Concept Mastery</h4>
-              {concepts.length === 0 ? (
+              {localConcepts.length === 0 ? (
                 <div className="text-[11px] text-zinc-400 italic pl-1">No concepts mapped yet...</div>
               ) : (
                 <div className="flex flex-col gap-2.5">
-                  {Object.entries(concepts.reduce((acc, c) => {
+                  {Object.entries(localConcepts.reduce((acc, c) => {
                     (acc[c.subject] = acc[c.subject] || []).push(c);
                     return acc;
-                  }, {} as Record<string, typeof concepts>)).map(([subject, subjectConcepts]) => (
+                  }, {} as Record<string, typeof localConcepts>)).map(([subject, subjectConcepts]) => (
                     <details key={subject} className="group bg-white border border-zinc-100 rounded-xl shadow-sm overflow-hidden" open>
                       <summary className="text-xs font-semibold text-zinc-700 p-3 cursor-pointer hover:bg-zinc-50 flex items-center justify-between outline-none">
                         <span>{subject}</span>
                         <ChevronDown className="w-4 h-4 text-zinc-400 transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="p-3 pt-0 border-t border-zinc-50 space-y-2 bg-zinc-50/50">
-                        {subjectConcepts.map(c => (
+                        {subjectConcepts.map((c: any) => (
                           <div key={c.id} className="flex items-center justify-between">
                             <span className="text-[11px] font-medium text-zinc-600 line-clamp-1 mr-2" title={c.concept}>{c.concept}</span>
                             {c.status === "KNOWN" && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded shrink-0">KNOWN</span>}

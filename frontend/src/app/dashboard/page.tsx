@@ -106,16 +106,16 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Welcome Back Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-900 via-indigo-950 to-zinc-950 p-6 md:p-8 text-white shadow-lg">
+          <div className="relative overflow-hidden rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 p-6 md:p-8 text-[#ffffff] shadow-lg">
             {/* Visual backdrop grid */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-3">
-                <h1 className="text-3xl font-light tracking-tight md:text-4xl" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
+                <h1 className="text-3xl font-light tracking-tight md:text-4xl text-[#ffffff]" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
                   A truly personalized learning journey
                 </h1>
-                <p className="text-sm text-zinc-300 max-w-md leading-relaxed">
+                <p className="text-sm text-purple-100 max-w-md leading-relaxed">
                   You&apos;re making great progress! Keep exploring and resolving your stuck points.
                 </p>
               </div>
