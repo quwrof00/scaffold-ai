@@ -134,7 +134,7 @@ export default function HistoryPage() {
           
           {/* Header Explanation */}
           <div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-[0_8px_30px_rgba(120,80,200,0.02)]">
-            <h1 className="text-3xl font-light tracking-tight text-[#2c2235] mb-2" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
+            <h1 className="text-3xl font-light tracking-tight text-zinc-900 mb-2" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
               Session History
             </h1>
             <p className="text-zinc-500 text-xs leading-relaxed max-w-xl">
@@ -275,7 +275,7 @@ export default function HistoryPage() {
                 </div>
               </div>
 
-              <div className="bg-purple-50/30 border border-purple-100/50 rounded-xl p-3 text-xs text-zinc-600 leading-relaxed">
+              <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-3 text-xs text-zinc-600 leading-relaxed">
                 <Sparkles className="w-4 h-4 text-purple-500 mb-1" />
                 <span>Session completed on {selectedSession.createdAt ? new Date(selectedSession.createdAt).toLocaleDateString("en-US", { dateStyle: "long" }) : "—"}. Visit the Stuck Map to see what concepts were explored.</span>
               </div>

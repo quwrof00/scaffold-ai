@@ -134,7 +134,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="text-[46px] sm:text-6xl md:text-8xl font-light tracking-tight leading-[1.05] text-[#2c2235] max-w-4xl"
+          className="text-[46px] sm:text-6xl md:text-8xl font-light tracking-tight leading-[1.05] text-zinc-900 max-w-4xl"
           style={{ fontFamily: 'var(--font-serif-editorial)' }}
         >
           A truly <span className="italic font-normal text-purple-600">personalized</span> <br />
@@ -687,7 +687,7 @@ export default function LandingPage() {
       {/* DETAILED FEATURES (Avoiding generic sections, prioritizing visual fidelity) */}
       <section id="features" className="w-full max-w-6xl mx-auto px-6 py-20 relative z-20 border-t border-purple-100/60">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <h3 className="text-3xl md:text-5xl font-light tracking-tight text-[#2c2235] mb-4" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
+          <h3 className="text-3xl md:text-5xl font-light tracking-tight text-zinc-900 mb-4" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
             Learn dynamically, arrive at answers naturally
           </h3>
           <p className="text-zinc-600 text-sm md:text-base leading-relaxed">

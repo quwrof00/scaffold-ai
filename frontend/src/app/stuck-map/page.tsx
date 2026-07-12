@@ -43,10 +43,10 @@ export default function StuckMapPage() {
           {/* Header Description Section */}
           <div className="bg-white border border-zinc-200/50 rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_rgba(120,80,200,0.02)]">
             <div className="max-w-xl space-y-2">
-              <h1 className="text-3xl font-light tracking-tight text-[#2c2235]" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
+              <h1 className="text-3xl font-light tracking-tight text-zinc-900" style={{ fontFamily: 'var(--font-serif-editorial)' }}>
                 Conceptual Friction Points
               </h1>
-              <p className="text-zinc-550 text-xs leading-relaxed">
+              <p className="text-zinc-500 text-xs leading-relaxed">
                 This map isolates concepts where {profile?.name || "you are"} repeatedly getting stuck during Socratic session dialogs. By resolving these primary friction points, we prevent systemic misconceptions in dependent topics.
               </p>
             </div>
@@ -164,11 +164,11 @@ export default function StuckMapPage() {
                     <span>Recent Progress</span>
                   </div>
                   {trajectory.reduce((sum, t) => sum + t.sessions, 0) > 0 ? (
-                    <p className="text-[11px] text-zinc-550 leading-relaxed">
+                    <p className="text-[11px] text-zinc-500 leading-relaxed">
                       You have mastered <b>{trajectory[trajectory.length - 1].mastery} concepts</b> across <b>{trajectory.reduce((sum, t) => sum + t.sessions, 0)} sessions</b> in the last 30 days. Keep up the momentum!
                     </p>
                   ) : (
-                    <p className="text-[11px] text-zinc-550 leading-relaxed">
+                    <p className="text-[11px] text-zinc-500 leading-relaxed">
                       Start your first Socratic session to begin tracking your mastery trajectory!
                     </p>
                   )}

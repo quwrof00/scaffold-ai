@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+import { usePathname } from "next/navigation";
+
 type Theme = "light" | "dark" | "system";
 
 interface ThemeContextValue {
@@ -14,6 +16,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [theme, setThemeState] = useState<Theme>("light");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
@@ -34,7 +37,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     function apply(t: Theme) {
-      const resolved = resolve(t);
+      let resolved = resolve(t);
+      if (pathname === "/login" || pathname === "/register") {
+        resolved = "light";
+      }
       setResolvedTheme(resolved);
       root.classList.remove("light", "dark");
       root.classList.add(resolved);
@@ -47,7 +53,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     mediaQuery.addEventListener("change", listener);
     return () => mediaQuery.removeEventListener("change", listener);
-  }, [theme]);
+  }, [theme, pathname]);
 
   function setTheme(t: Theme) {
     setThemeState(t);

@@ -489,7 +489,7 @@ export default function SessionPage() {
                       const bgClass = isKnown ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 
                                       isPartial ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60' : 
                                       isMisconception ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60' :
-                                      'bg-white dark:bg-zinc-900/50 border-purple-100/40 dark:border-purple-500/20';
+                                      'bg-zinc-50 border-zinc-200';
                       const barClass = isKnown ? 'bg-emerald-400' : 
                                        isPartial ? 'bg-blue-400' : 
                                        isMisconception ? 'bg-red-400' :
@@ -534,6 +534,7 @@ export default function SessionPage() {
                         <ChevronDown className="w-4 h-4 text-zinc-400 transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="p-3 pt-0 border-t border-zinc-50 space-y-2 bg-zinc-50/50">
+                    {/* @ts-ignore */}
                         {subjectConcepts.map((c: any) => (
                           <div key={c.id} className="flex items-center justify-between">
                             <span className="text-[11px] font-medium text-zinc-600 line-clamp-1 mr-2" title={c.concept}>{c.concept}</span>

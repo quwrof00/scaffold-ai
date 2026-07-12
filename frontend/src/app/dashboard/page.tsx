@@ -124,7 +124,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="flex flex-col items-center justify-center w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-xl">
                   <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest mb-1">Level</span>
-                  <span className="text-3xl font-black text-white leading-none">
+                  <span className="text-3xl font-black text-[#ffffff] leading-none">
                     {profile ? Math.max(1, Math.floor((profile.xp || 0) / 500) + 1) : 1}
                   </span>
                 </div>
@@ -450,16 +450,16 @@ export default function DashboardPage() {
           </div>
 
           {/* Learning Style Card */}
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50/50 border border-purple-100/60 rounded-2xl p-6 shadow-[0_8px_30px_rgba(120,80,200,0.02)]">
+          <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-6 shadow-[0_8px_30px_rgba(120,80,200,0.02)]">
             <div className="flex items-center gap-2 mb-3">
               <Brain className="w-4.5 h-4.5 text-purple-700" />
-              <h3 className="text-sm font-bold text-purple-900">Cognitive Profile & Insights</h3>
+              <h3 className="text-sm font-bold text-zinc-900">Cognitive Profile & Insights</h3>
             </div>
             <div className="space-y-3 text-[11px] text-zinc-600 leading-relaxed">
               <p>
                 <b>Conceptual Explorer:</b> {profile?.name || userName} shows a growing pattern of concept exploration. Keep engaging with the Socratic tutor to unlock deeper insights.
               </p>
-              <div className="flex items-start gap-2 bg-white/70 border border-purple-100 p-2.5 rounded-xl">
+              <div className="flex items-start gap-2 bg-zinc-100 border border-zinc-200 p-2.5 rounded-xl">
                 <Zap className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                 <p className="text-[10px]">
                   <b>Tip:</b> After each session your concept mastery map updates automatically. Visit the Stuck Map to see exactly where to focus next.
