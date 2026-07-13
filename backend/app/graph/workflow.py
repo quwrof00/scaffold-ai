@@ -9,11 +9,14 @@ def route_after_rules(state: GraphState):
     next_action = state.get("next_action")
     session = state.get("session")
     
+    is_session_dict = isinstance(session, dict)
+    intent = session.get("intent") if is_session_dict else getattr(session, 'intent', None)
+    
     if next_action == "evaluate_objective":
         return "objective_evaluator_node"
     
     # Concept Flow Routing
-    if session and getattr(session, 'intent', None) == "CONCEPT_UNDERSTANDING":
+    if session and intent == "CONCEPT_UNDERSTANDING":
         if not state.get("concept_graph"):
             return "concept_graph_generator_node"
         return "concept_evaluator_node"
