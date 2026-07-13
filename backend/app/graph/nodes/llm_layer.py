@@ -114,7 +114,14 @@ def concept_evaluator_node(state: GraphState) -> GraphState:
     graph_str = str(graph)
     current_states_str = str(states)
     
-    sys_prompt = f"You are a Knowledge Tracing Engine. Evaluate the student's latest response against the concept graph: {graph_str}. Current states: {current_states_str}. Which concepts did their response prove they know, partially know, don't know, or hold a misconception about? Output ONLY the state updates."
+    sys_prompt = f"""You are a STRICT Knowledge Tracing Engine. Evaluate the student's latest response against the concept graph: {graph_str}. Current states: {current_states_str}. 
+Which concepts did their response prove they know, partially know, don't know, or hold a misconception about? 
+CRITICAL RULES:
+1. Be VERY STRICT. Do not assume knowledge.
+2. If the student gives a brief, vague, or uncertain answer (e.g. "yeah", "idk", "what", "I think so"), mark relevant concepts as UNKNOWN.
+3. Only mark a concept as KNOWN if the student explicitly demonstrates a clear and correct understanding of it.
+4. Only mark as PARTIAL if they show some correct understanding but are missing key details.
+Output ONLY the state updates."""
     
     structured_model = grok_model_structured.with_structured_output(ConceptEvaluatorOutput)
     try:

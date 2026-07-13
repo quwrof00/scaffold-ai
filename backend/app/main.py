@@ -1,4 +1,10 @@
 import os
+import sys
+import asyncio
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import StreamingResponse
@@ -611,9 +617,8 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, db:
     final_state = await app_workflow.ainvoke(input_state, config=config)
 
     # Extract the last AIMessage
-    from langchain_core.messages import AIMessage as LCAIMessage
     messages = final_state.get("messages", [])
-    ai_messages = [m for m in messages if isinstance(m, LCAIMessage)]
+    ai_messages = [m for m in messages if getattr(m, "type", "") == "ai"]
     if ai_messages:
         ai_response = ai_messages[-1].content
     elif messages:
